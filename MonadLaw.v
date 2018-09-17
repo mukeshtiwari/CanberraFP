@@ -28,15 +28,17 @@ Module Type Monad.
     n >>= compose ret f.
 
   Definition join {A : Type} (n : m (m A)) : m A :=
-    n >>= id.
+    n >>= id. 
 
   
   Theorem fmap_compose_join_eq_bind :
     forall (A B : Type) (n : m A) (f : A -> m B),
       n >>= f = join (fmap f n).
   Proof.
-    unfold join. unfold fmap. unfold compose.  intros.
-    rewrite bind_assoc.
+    intros. 
+    unfold join. unfold fmap. unfold compose.
+    (* Check (bind_assoc n (fun x : A => ret (f x)) id). *)
+    rewrite (bind_assoc n (fun x : A => ret (f x)) id).
     f_equal. apply functional_extensionality.  intros.
     rewrite left_id. auto.
   Qed.
@@ -244,6 +246,8 @@ Module List <: Monad.
   Qed.
 
 End List.
+
+
 
 
   
