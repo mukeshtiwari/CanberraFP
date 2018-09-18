@@ -17,19 +17,40 @@ Module Type Monad.
   Axiom left_id : forall (A B : Type) (x : A) (f : A -> m B),
     ret x >>= f = f x.
 
+  (* This definition is for me 
+  Axiom left_id_sym : forall (A B : Type) (x : A) (f : A -> m B),
+      bind (ret x) f = f x. *)
+  
   Axiom right_id : forall (A : Type) (x : m A),
     x >>= ret = x.
 
+  (* 
+  Axiom right_id_sym : forall (A B : Type) (x : m A),
+      bind x ret = x. *)
+  
   Axiom bind_assoc :
     forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
       (n >>= f) >>= g = n >>= (fun x => f x >>= g).
 
+  (*
+  Axiom bind_assoc_sym :
+    forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
+      bind (bind n f) g = bind n (fun x => bind (f x) g). *)
+  
   Definition fmap {A B : Type} (f : A -> B) (n : m A) : m B :=
     n >>= compose ret f.
 
-  Definition join {A : Type} (n : m (m A)) : m A :=
-    n >>= id. 
+  (*
+  Definition fmap_sym {A B : Type} (f : A -> B) (n : m A) : m B :=
+    bind n (compose ret f). *)
 
+  Definition join {A : Type} (n : m (m A)) : m A :=
+    n >>= id.
+
+  (*
+  Definition join_sym {A : Type} (n : m (m A)) : m A :=
+    bind n id. *)
+  
   
   Theorem fmap_compose_join_eq_bind :
     forall (A B : Type) (n : m A) (f : A -> m B),
@@ -42,6 +63,8 @@ Module Type Monad.
     f_equal. apply functional_extensionality.  intros.
     rewrite left_id. auto.
   Qed.
+
+
   
   
   Theorem fmap_id :
