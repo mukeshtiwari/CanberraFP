@@ -60,6 +60,10 @@ Module Type Monad.
     unfold join. unfold fmap. unfold compose.
     (* Check (bind_assoc n (fun x : A => ret (f x)) id). *)
     rewrite (bind_assoc n (fun x : A => ret (f x)) id).
+    (* This tactic applies to a goal of the form f a1 ... an = f′ a′1 ... a′n. 
+       Using f_equal on such a goal leads to subgoals f=f′ and a1 = a′1 and so on up 
+       to an = a′n. Amongst these subgoals, the simple ones 
+       (e.g. provable by reflexivity or congruence) are automatically solved by f_equal. *)
     f_equal. apply functional_extensionality.  intros.
     rewrite left_id. auto.
   Qed.
@@ -236,7 +240,7 @@ Module List <: Monad.
       n >>= f = join (fmap f n).
   Proof.
     unfold join. unfold fmap. unfold compose. 
-    intros. rewrite bind_assoc.
+    intros. rewrite bind_assoc.  
     f_equal. apply functional_extensionality.  intros.
     rewrite left_id. auto.
   Qed.
