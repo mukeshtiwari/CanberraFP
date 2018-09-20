@@ -293,5 +293,30 @@ Module State <: Monad.
   Definition join (A : Type) (n : m (m A)) : m A :=
     bind _ _ n id.
 
+   
+  Theorem fmap_compose_join_eq_bind :
+    forall (A B : Type) (n : m A) (f : A -> m B),
+      bind _ _ n f = join _ (fmap _ _ f n).
+  Proof.
+  Admitted.
+
+  Theorem fmap_id :
+    forall (A : Type), fmap A _ id = id.
+  Proof.
+  Admitted.
+
+  Theorem fmap_associativity :
+    forall (A B C : Type) (f : A -> B) (g : B -> C),
+      fmap _ _ (compose g f) = compose (fmap _ _ g) (fmap _ _ f).
+  Proof.
+  Admitted.
+
+
+  Theorem return_property :
+    forall (A B : Type) (f : A -> B) (x : A),
+      ret _ (f x) = fmap _ _ f (ret _ x).
+  Proof.
+  Admitted.
+  
 End State.
 
