@@ -149,7 +149,7 @@ Module List <: Monad.
   
   Definition ret (A : Type) (x : A) := cons x nil.
   
-  Definition bind (A B : Type) (n : list A) (f : A -> list B) :=
+  Definition bind (A B : Type) (n : m A) (f : A -> m B) :=
     concat (map f n).
    
   Theorem left_id : forall (A B : Type) (x : A) (f : A -> m B),
@@ -203,7 +203,6 @@ Module List <: Monad.
     forall (A B : Type) (n : m A) (f : A -> m B),
       bind _ _ n f = join _ (fmap _ _ f n).
   Proof.
-    
     unfold join, fmap, compose.
     refine (fun A B n f => _);
       rewrite bind_assoc.
@@ -247,17 +246,52 @@ End List.
 
 Module State <: Monad.
 
-  (* M is type of State *)
-  Definition state (M A : Type) :=  M -> prod A M.
+  (* M is the type of State *)
+  Parameter M : Type. 
 
-  Definition m (M : Type) := state M.
-
-  Definition ret (M A : Type) (a : A) :=
+  Definition state (A : Type) :=  M -> prod A M.
+  
+  Definition m (A : Type) := state A.
+  
+  Definition ret (A : Type) (a : A) :=
     fun (s : M) => (a, s).
+  
 
- 
-  Definition bind (M A B : Type) (n : m M A)
-             (f : A -> m M B) :=
+  Definition bind (A B : Type) (n : m A) (f : A -> m B) :=
      fun (s : M ) => let (r, s') := n s in f r s'.
+
+  Theorem left_id : forall (A B : Type) (x : A) (f : A -> m B),
+      bind  A _ (ret A x) f = f x.
+  Proof.
+    unfold bind, ret.
+    refine (fun A B x f =>
+              functional_extensionality _ _ (fun y => eq_refl)).
+  Qed.
+
+  Theorem right_id : forall (A : Type) (x : m A),
+      bind _ _ x (ret _) = x.
+  Proof.
+    unfold bind, ret.
+    refine (fun A x =>
+              functional_extensionality _ _ (fun y => _)).
+    destruct (x y); auto.
+  Qed.
+
+  Theorem bind_assoc :
+     forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
+       bind B C (bind A B n f) g = bind _ _ n (fun x => bind _ _ (f x) g).
+  Proof.
+    unfold bind.
+    refine (fun A B C n f g =>
+              functional_extensionality _ _ (fun y => _)).
+    destruct (n y); exact eq_refl.
+  Qed.
+
+   Definition fmap (A B : Type) (f : A -> B) (n : m A) : m B :=
+    bind _ _ n (compose (ret _) f).
   
-  
+  Definition join (A : Type) (n : m (m A)) : m A :=
+    bind _ _ n id.
+
+End State.
+
