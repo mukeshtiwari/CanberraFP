@@ -144,8 +144,7 @@ Module Option <: Monad.
   
 End Option. 
   
-Module List <: Monad.
- 
+Module List <: Monad. 
   Definition m := list.
   
   Definition ret (A : Type) (x : A) := cons x nil.
@@ -177,64 +176,88 @@ Module List <: Monad.
   
   
   Theorem bind_assoc :
-    forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
-      (n >>= f) >>= g = n >>= (fun x => f x >>= g).
+     forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
+       bind B C (bind A B n f) g = bind _ _ n (fun x => bind _ _ (f x) g).
   Proof.
-    intros. unfold bind.  
-    induction n.
-    simpl.  auto.
-    simpl. rewrite map_app.
-    rewrite concat_app. f_equal. 
-    auto.
+    unfold bind.
+    refine (fun A B C =>
+              fix F n :=
+              match n with
+              | [] => fun f g => eq_refl
+              | h :: t => fun f g => _
+              end); cbn.
+    rewrite map_app, concat_app.
+    specialize (F t f g); rewrite F.
+    exact eq_refl.
   Qed.
-
-  Definition fmap {A B : Type} (f : A -> B) (n : m A) : m B :=
-    n >>= compose ret f.
   
-  Definition join {A : Type} (n : m (m A)) : m A :=
-    n >>= id.
+
+  Definition fmap (A B : Type) (f : A -> B) (n : m A) : m B :=
+    bind _ _ n (compose (ret _) f).
+  
+  Definition join (A : Type) (n : m (m A)) : m A :=
+    bind _ _ n id.
   
   
   Theorem fmap_compose_join_eq_bind :
     forall (A B : Type) (n : m A) (f : A -> m B),
-      n >>= f = join (fmap f n).
+      bind _ _ n f = join _ (fmap _ _ f n).
   Proof.
-    unfold join. unfold fmap. unfold compose. 
-    intros. rewrite bind_assoc.  
-    f_equal. apply functional_extensionality.  intros.
-    rewrite left_id. auto.
+    
+    unfold join, fmap, compose.
+    refine (fun A B n f => _);
+      rewrite bind_assoc.
+    f_equal. refine (functional_extensionality _ _ _).
+    refine (fun x => _). rewrite left_id.
+    exact eq_refl.
   Qed.
-
   
   
   Theorem fmap_id :
-    forall (A : Type), fmap (@id A) = @id (m A).
+    forall (A : Type), fmap A _ id = id.
   Proof.
-    intros. unfold fmap. apply functional_extensionality.
-    intros. unfold compose. rewrite right_id. auto.
+    unfold fmap, compose, id.
+    refine (fun A => functional_extensionality _ _ _).
+    refine (fun x => _); rewrite right_id.
+    exact eq_refl.
   Qed.
+  
   
   Theorem fmap_associativity :
     forall (A B C : Type) (f : A -> B) (g : B -> C),
-      fmap (compose g f) = compose (fmap g) (fmap f).
+      fmap _ _ (compose g f) = compose (fmap _ _ g) (fmap _ _ f).
   Proof.
-    intros. unfold fmap, compose.
-    apply functional_extensionality.  intros.
-    rewrite bind_assoc.  f_equal.
+    unfold fmap, compose.
+    refine (fun A B C f g => functional_extensionality _ _ _).
+    refine (fun x => _). rewrite bind_assoc.
+    f_equal.
   Qed.
   
 
   Theorem return_property :
     forall (A B : Type) (f : A -> B) (x : A),
-      ret (f x) = fmap f (ret x).
+      ret _ (f x) = fmap _ _ f (ret _ x).
   Proof.
-    unfold fmap. unfold compose. intros.
-    rewrite left_id. auto.
+    unfold fmap, compose.
+    refine (fun A B f x => _).
+    rewrite left_id. exact eq_refl.
   Qed.
 
 End List.
 
+Module State <: Monad.
 
+  (* M is type of State *)
+  Definition state (M A : Type) :=  M -> prod A M.
 
+  Definition m (M : Type) := state M.
 
+  Definition ret (M A : Type) (a : A) :=
+    fun (s : M) => (a, s).
+
+ 
+  Definition bind (M A B : Type) (n : m M A)
+             (f : A -> m M B) :=
+     fun (s : M ) => let (r, s') := n s in f r s'.
+  
   
