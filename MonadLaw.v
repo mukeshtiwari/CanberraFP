@@ -1,6 +1,7 @@
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Basics.
-
+Require Import Coq.Lists.List.
+Import ListNotations.
 
 Module Type Monad.
   Parameter m : Type -> Type.
@@ -120,57 +121,60 @@ Module Option <: Monad.
   Proof.
     unfold fmap, bind, ret, compose, id.
     refine (fun A B C f g =>
-              functional_extensionality _ _ _).
-    
-                
-                
-
-    
-    intros. unfold fmap, compose, ret. 
-    apply functional_extensionality.  intros.
-    destruct x.  simpl. auto.
-    simpl. auto.  
+              functional_extensionality (fun x =>
+                                             match x with
+                                             | Some y => Some (g (f y))
+                                             | None => None
+                                             end) _ _). (* Now terms are getting messier *)
+    intros.
+    refine (match x with
+            | Some y => _
+            | None => _
+            end); auto.
   Qed.
   
+                
   Theorem return_property :
     forall (A B : Type) (f : A -> B) (x : A),
-      ret (f x) = fmap f (ret x).
+      ret _ (f x) = fmap _ _ f (ret _ x).
   Proof.
-    unfold fmap. unfold compose. unfold ret. intros.
-    rewrite left_id. auto.
-  Qed. 
-
+    unfold fmap, bind, ret, compose.
+    refine (fun A B f x => eq_refl).
+  Qed.
+  
 End Option. 
   
-
-
 Module List <: Monad.
-  Require Import Coq.Lists.List.
-  Definition m := list. 
-
-  Definition ret {A : Type} (x : A) := cons x nil.
-
-  Definition bind {A B : Type} (n : list A) (f : A -> list B) :=
+ 
+  Definition m := list.
+  
+  Definition ret (A : Type) (x : A) := cons x nil.
+  
+  Definition bind (A B : Type) (n : list A) (f : A -> list B) :=
     concat (map f n).
    
- Infix ">>=" := bind (at level 50, left associativity).
-  (* m is option *)
   Theorem left_id : forall (A B : Type) (x : A) (f : A -> m B),
-      ret x >>= f = f x.
+      bind _ _ (ret _ x) f = f x.
   Proof.
-    intros. unfold ret. unfold bind.
-    simpl. rewrite <- app_nil_end.
-    auto. 
-  Qed.  
+    unfold bind, ret.
+    cbn. refine (fun A B x f =>
+                   app_nil_r (f x)).
+  Qed. 
   
   Theorem right_id : forall (A : Type) (x : m A),
-      x >>= ret = x.
+      bind _ _ x (ret _) = x.
   Proof.
-    intros. unfold ret.  unfold bind.
-    induction x.
-    simpl; auto.
-    simpl. f_equal. auto.  
+    unfold bind, ret.
+    refine (fun A =>
+              fix F x :=
+              match x with
+              | [] => eq_refl
+              | h :: t => _
+              end); cbn.
+    specialize (F t). rewrite F.
+    exact eq_refl.
   Qed.
+  
   
   Theorem bind_assoc :
     forall (A B C : Type) (n : m A) (f : A -> m B) (g : B -> m C),
